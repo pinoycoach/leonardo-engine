@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import type { InfluenceAnalysis, ArchetypeAnalysis, FirstImpressionAnalysis, AgentResult } from "@/types/leonardo";
+import type { InfluenceAnalysis, ArchetypeAnalysis, FirstImpressionAnalysis, AgentResult, MediaType } from "@/types/leonardo";
 
 /**
  * THE INFLUENCE PREDICTOR
@@ -109,6 +109,7 @@ Based on ALL factors:
 export async function runInfluencePredictor(
   imageData: string,
   apiKey: string,
+  mediaType: MediaType = "image/jpeg",
   archetypeData?: ArchetypeAnalysis,
   firstImpressionData?: FirstImpressionAnalysis
 ): Promise<AgentResult> {
@@ -155,7 +156,7 @@ export async function runInfluencePredictor(
               type: "image",
               source: {
                 type: "base64",
-                media_type: "image/jpeg",
+                media_type: mediaType,
                 data: imageData.split(',')[1] || imageData
               }
             },

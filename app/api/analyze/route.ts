@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { analyzePupil, analyzeDualPupil } from '@/services/leonardo';
+import { analyzePupil, analyzeDualPupil, detectMediaType } from '@/services/leonardo';
 import type { AnalysisRequest, BatchResult } from '@/types/leonardo';
 
 export const runtime = 'nodejs';
@@ -45,13 +45,18 @@ export async function POST(request: NextRequest) {
         console.log(`📸 [${i + 1}/${batchImages.length}] Analyzing image...`);
 
         try {
+          // Detect the actual image type (PNG/JPEG/GIF/WebP) from the base64
+          // bytes so agents declare the correct media_type to Claude.
+          const mediaType = detectMediaType(imageBase64);
+
           const singleRequest: AnalysisRequest = {
             imageBase64,
+            mediaType,
             mode: body.mode || 'full',
             intent: body.intent
           };
 
-          const report = await analyzePupil(singleRequest, apiKey);
+          const report = await analyzePupil(singleRequest, apiKey, mediaType);
           reports.push({ index: i, fileName: `Image ${i + 1}`, report });
           completedImages++;
           console.log(`   ✅ Image ${i + 1} complete: Leonardo Score ${report.overallScore}/100`);
@@ -119,10 +124,18 @@ export async function POST(request: NextRequest) {
     const isComparisonMode = body.comparisonMode &&
       (body.comparisonImageBase64 || body.comparisonImageUrl);
 
+    // Detect the actual image media type (PNG/JPEG/GIF/WebP) from the incoming
+    // base64 so every agent declares the correct media_type to Claude. PNG
+    // uploads previously failed because 'image/jpeg' was hardcoded.
+    const mediaType = body.imageBase64 ? detectMediaType(body.imageBase64) : undefined;
+    if (mediaType) {
+      console.log(`🖼️ Incoming image media type: ${mediaType}`);
+    }
+
     if (isComparisonMode) {
       console.log('🎨 Starting Leonardo Engine 2.0 DUAL IMAGE COMPARISON analysis...');
 
-      // Run dual analysis
+      // Run dual analysis (each image's type is auto-detected internally)
       const report = await analyzeDualPupil(body, apiKey);
 
       console.log('✅ Dual analysis complete:');
@@ -139,7 +152,7 @@ export async function POST(request: NextRequest) {
     console.log('🎨 Starting Leonardo Engine 2.0 FINAL analysis...');
 
     // Run analysis with all 10 agents
-    const report = await analyzePupil(body, apiKey);
+    const report = await analyzePupil(body, apiKey, mediaType);
 
     console.log('✅ Analysis complete:');
     console.log(`   Leonardo Score: ${report.overallScore}/100`);

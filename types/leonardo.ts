@@ -745,9 +745,15 @@ export interface ScoredMetric {
   stability: 'HIGH' | 'MODERATE' | 'LOW'; // margin ≤3 → HIGH, ≤7 → MODERATE, else LOW
 }
 
+// Supported image media types for Claude vision input
+export type MediaType = 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp';
+
 export interface AnalysisRequest {
   imageUrl?: string;
   imageBase64?: string;
+  // Detected/declared media type of the supplied image. When omitted, the
+  // engine auto-detects it from the base64 magic bytes.
+  mediaType?: MediaType;
   mode: 'full' | 'quick' | 'custom';
   selectedAgents?: string[];
   intent?: AnalysisIntent;

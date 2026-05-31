@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import type { RedFlagAnalysis, AgentResult, FirstImpressionAnalysis, ArchetypeAnalysis } from "@/types/leonardo";
+import type { RedFlagAnalysis, AgentResult, FirstImpressionAnalysis, ArchetypeAnalysis, MediaType } from "@/types/leonardo";
 
 /**
  * THE RED FLAG METRIC (Agent 9 - The Sentinel)
@@ -210,6 +210,7 @@ Specifically detect the "Mask of Sanity" pattern:
 export async function runRedFlagMetric(
   imageData: string,
   apiKey: string,
+  mediaType: MediaType = "image/jpeg",
   archetypeAnalysis?: ArchetypeAnalysis,
   firstImpressionAnalysis?: FirstImpressionAnalysis
 ): Promise<AgentResult> {
@@ -251,7 +252,7 @@ export async function runRedFlagMetric(
               type: "image",
               source: {
                 type: "base64",
-                media_type: "image/jpeg",
+                media_type: mediaType,
                 data: imageData.split(',')[1] || imageData
               }
             },

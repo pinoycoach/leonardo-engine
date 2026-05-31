@@ -4,7 +4,8 @@ import type {
   AgentResult,
   ArchetypeAnalysis,
   FirstImpressionAnalysis,
-  RedFlagAnalysis
+  RedFlagAnalysis,
+  MediaType
 } from "@/types/leonardo";
 
 /**
@@ -227,6 +228,7 @@ Does their claimed archetype match their biological reality?
 export async function runIntegrityAuditor(
   imageData: string,
   apiKey: string,
+  mediaType: MediaType = "image/jpeg",
   archetypeAnalysis?: ArchetypeAnalysis,
   firstImpressionAnalysis?: FirstImpressionAnalysis,
   redFlagAnalysis?: RedFlagAnalysis
@@ -327,7 +329,7 @@ export async function runIntegrityAuditor(
               type: "image",
               source: {
                 type: "base64",
-                media_type: "image/jpeg",
+                media_type: mediaType,
                 data: imageData.split(',')[1] || imageData
               }
             },

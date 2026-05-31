@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import type { VitruvianMetrics, AgentResult } from "@/types/leonardo";
+import type { VitruvianMetrics, AgentResult, MediaType } from "@/types/leonardo";
 
 /**
  * THE ANATOMIST
@@ -46,7 +46,8 @@ Your task is to analyze an image for adherence to Vitruvian proportions:
 
 export async function runAnatomist(
   imageData: string,
-  apiKey: string
+  apiKey: string,
+  mediaType: MediaType = "image/jpeg"
 ): Promise<AgentResult> {
   const startTime = Date.now();
   
@@ -63,7 +64,7 @@ export async function runAnatomist(
               type: "image",
               source: {
                 type: "base64",
-                media_type: "image/jpeg",
+                media_type: mediaType,
                 data: imageData.split(',')[1] || imageData
               }
             },

@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import type { CompositionAnalysis, AgentResult } from "@/types/leonardo";
+import type { CompositionAnalysis, AgentResult, MediaType } from "@/types/leonardo";
 
 /**
  * THE COMPOSITION DIRECTOR
@@ -77,7 +77,8 @@ Your task is to analyze image composition using Da Vinci's own structural framew
 
 export async function runCompositionDirector(
   imageData: string,
-  apiKey: string
+  apiKey: string,
+  mediaType: MediaType = "image/jpeg"
 ): Promise<AgentResult> {
   const startTime = Date.now();
   
@@ -94,7 +95,7 @@ export async function runCompositionDirector(
               type: "image",
               source: {
                 type: "base64",
-                media_type: "image/jpeg",
+                media_type: mediaType,
                 data: imageData.split(',')[1] || imageData
               }
             },

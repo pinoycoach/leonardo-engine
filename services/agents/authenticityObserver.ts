@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import type { AuthenticityObservation, AgentResult } from "@/types/leonardo";
+import type { AuthenticityObservation, AgentResult, MediaType } from "@/types/leonardo";
 
 /**
  * THE AUTHENTICITY OBSERVER (Mirror Mode – Phase 3 Replacement)
@@ -66,7 +66,8 @@ Da Vinci wrote: "The good painter must paint two principal things: man and the i
 
 export async function runAuthenticityObserver(
   imageData: string,
-  apiKey: string
+  apiKey: string,
+  mediaType: MediaType = "image/jpeg"
 ): Promise<AgentResult> {
   const startTime = Date.now();
 
@@ -83,7 +84,7 @@ export async function runAuthenticityObserver(
               type: "image",
               source: {
                 type: "base64",
-                media_type: "image/jpeg",
+                media_type: mediaType,
                 data: imageData.split(',')[1] || imageData
               }
             },

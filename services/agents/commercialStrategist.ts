@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import type { CommercialAnalysis, AgentResult } from "@/types/leonardo";
+import type { CommercialAnalysis, AgentResult, MediaType } from "@/types/leonardo";
 
 /**
  * THE COMMERCIAL STRATEGIST
@@ -79,7 +79,8 @@ Your task is to analyze an image's commercial viability and strategic positionin
 
 export async function runCommercialStrategist(
   imageData: string,
-  apiKey: string
+  apiKey: string,
+  mediaType: MediaType = "image/jpeg"
 ): Promise<AgentResult> {
   const startTime = Date.now();
   
@@ -96,7 +97,7 @@ export async function runCommercialStrategist(
               type: "image",
               source: {
                 type: "base64",
-                media_type: "image/jpeg",
+                media_type: mediaType,
                 data: imageData.split(',')[1] || imageData
               }
             },

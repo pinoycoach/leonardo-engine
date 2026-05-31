@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import type { ArchetypeAnalysis, AgentResult } from "@/types/leonardo";
+import type { ArchetypeAnalysis, AgentResult, MediaType } from "@/types/leonardo";
 
 /**
  * THE ARCHETYPE READER
@@ -103,7 +103,8 @@ Which genres/industries suit this face?
 
 export async function runArchetypeReader(
   imageData: string,
-  apiKey: string
+  apiKey: string,
+  mediaType: MediaType = "image/jpeg"
 ): Promise<AgentResult> {
   const startTime = Date.now();
 
@@ -120,7 +121,7 @@ export async function runArchetypeReader(
               type: "image",
               source: {
                 type: "base64",
-                media_type: "image/jpeg",
+                media_type: mediaType,
                 data: imageData.split(',')[1] || imageData
               }
             },

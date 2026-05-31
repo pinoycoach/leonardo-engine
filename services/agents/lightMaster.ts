@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import type { LightingAnalysis, AgentResult } from "@/types/leonardo";
+import type { LightingAnalysis, AgentResult, MediaType } from "@/types/leonardo";
 
 /**
  * THE LIGHT MASTER
@@ -68,7 +68,8 @@ Your task is to analyze the lighting in an image using classical techniques:
 
 export async function runLightMaster(
   imageData: string,
-  apiKey: string
+  apiKey: string,
+  mediaType: MediaType = "image/jpeg"
 ): Promise<AgentResult> {
   const startTime = Date.now();
   
@@ -85,7 +86,7 @@ export async function runLightMaster(
               type: "image",
               source: {
                 type: "base64",
-                media_type: "image/jpeg",
+                media_type: mediaType,
                 data: imageData.split(',')[1] || imageData
               }
             },

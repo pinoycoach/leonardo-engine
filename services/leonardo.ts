@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import type { LeonardoReport, AnalysisRequest, ArchetypeAnalysis, FirstImpressionAnalysis, RedFlagAnalysis, VitruvianMetrics, ComparisonAnalysis } from "@/types/leonardo";
+import type { LeonardoReport, AnalysisRequest, ArchetypeAnalysis, FirstImpressionAnalysis, RedFlagAnalysis, VitruvianMetrics, ComparisonAnalysis, MediaType } from "@/types/leonardo";
 import { runAnatomist } from "./agents/anatomist";
 import { runLightMaster } from "./agents/lightMaster";
 import { runCompositionDirector } from "./agents/compositionDirector";
@@ -14,6 +14,37 @@ import { runRedFlagMetric } from "./agents/redFlagMetric";
 import { runIntegrityAuditor } from "./agents/integrityAuditor";
 // Leonardo Engine v2.0 - Mirror Mode Phase 3 Replacement
 import { runAuthenticityObserver } from "./agents/authenticityObserver";
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MEDIA TYPE DETECTION
+// ═══════════════════════════════════════════════════════════════════════════
+// Claude's vision API rejects requests where the declared media_type does not
+// match the actual image bytes (HTTP 400). Previously every agent hardcoded
+// 'image/jpeg', so PNG/GIF/WebP uploads failed. We detect the real type from
+// the base64 magic-byte prefix and thread it through to all agents.
+
+/**
+ * Strip a data-URL prefix ("data:image/png;base64,") if present, returning
+ * the raw base64 payload.
+ */
+export function stripBase64Prefix(base64: string): string {
+  return base64.includes(',') ? base64.split(',')[1] : base64;
+}
+
+/**
+ * Detect the image media type from the leading characters of a base64 string.
+ * Each format has a distinctive base64-encoded magic-byte prefix:
+ *   PNG  → iVBOR   JPEG → /9j/   GIF → R0lGO   WebP → UklGR
+ * Accepts either a raw base64 string or a full data URL.
+ */
+export function detectMediaType(base64: string): MediaType {
+  const raw = stripBase64Prefix(base64);
+  if (raw.startsWith('iVBOR')) return 'image/png';
+  if (raw.startsWith('/9j/')) return 'image/jpeg';
+  if (raw.startsWith('R0lGO')) return 'image/gif';
+  if (raw.startsWith('UklGR')) return 'image/webp';
+  return 'image/jpeg'; // fallback
+}
 
 /**
  * LEONARDO ENGINE 2.0 ORCHESTRATOR
@@ -246,7 +277,8 @@ const MIRROR_INSIGHTS_SYNTHESIS_PROMPT = `You are Leonardo da Vinci synthesizing
 
 export async function analyzePupil(
   request: AnalysisRequest,
-  apiKey: string
+  apiKey: string,
+  mediaTypeOverride?: MediaType
 ): Promise<LeonardoReport> {
   const startTime = Date.now();
 
@@ -256,6 +288,11 @@ export async function analyzePupil(
 
   // Use base64 if provided, otherwise fetch URL
   const imageData = request.imageBase64 || (await fetchImageAsBase64(request.imageUrl!));
+
+  // Detect the real image media type so every agent declares the correct
+  // media_type to Claude (PNG/GIF/WebP were failing with hardcoded jpeg).
+  const mediaType: MediaType = mediaTypeOverride ?? request.mediaType ?? detectMediaType(imageData);
+  console.log(`🖼️ Detected media type: ${mediaType}`);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // PHASE 1: Run original 5 agents in parallel (Leonardo Score)
@@ -270,11 +307,11 @@ export async function analyzePupil(
     textureCriticResult,
     commercialResult
   ] = await Promise.all([
-    runAnatomist(imageData, apiKey),
-    runLightMaster(imageData, apiKey),
-    runCompositionDirector(imageData, apiKey),
-    runTextureCritic(imageData, apiKey),
-    runCommercialStrategist(imageData, apiKey)
+    runAnatomist(imageData, apiKey, mediaType),
+    runLightMaster(imageData, apiKey, mediaType),
+    runCompositionDirector(imageData, apiKey, mediaType),
+    runTextureCritic(imageData, apiKey, mediaType),
+    runCommercialStrategist(imageData, apiKey, mediaType)
   ]);
 
   console.log("✅ Phase 1 complete: Original 5 agents done");
@@ -286,8 +323,8 @@ export async function analyzePupil(
 
   // First, run Archetype Reader and First Impression Analyzer in parallel
   const [archetypeResult, firstImpressionResult] = await Promise.all([
-    runArchetypeReader(imageData, apiKey),
-    runFirstImpressionAnalyzer(imageData, apiKey)
+    runArchetypeReader(imageData, apiKey, mediaType),
+    runFirstImpressionAnalyzer(imageData, apiKey, mediaType)
   ]);
 
   // Then run Influence Predictor with context from the other two
@@ -302,6 +339,7 @@ export async function analyzePupil(
   const influenceResult = await runInfluencePredictor(
     imageData,
     apiKey,
+    mediaType,
     archetypeAnalysis,
     firstImpressionAnalysis
   );
@@ -322,7 +360,7 @@ export async function analyzePupil(
 
   if (analysisMode === 'mirror') {
     console.log("🪞 Phase 3 [MIRROR]: Running Authenticity Observer...");
-    authenticityResult = await runAuthenticityObserver(imageData, apiKey);
+    authenticityResult = await runAuthenticityObserver(imageData, apiKey, mediaType);
     console.log("✅ Phase 3 [MIRROR] complete: Authenticity Observer done");
   } else {
     console.log("🔍 Phase 3 [NOTEBOOK]: Running 2 Integrity Dossier agents (Truth Layer)...");
@@ -330,6 +368,7 @@ export async function analyzePupil(
     redFlagResult = await runRedFlagMetric(
       imageData,
       apiKey,
+      mediaType,
       archetypeAnalysis,
       firstImpressionAnalysis
     );
@@ -341,6 +380,7 @@ export async function analyzePupil(
     integrityResult = await runIntegrityAuditor(
       imageData,
       apiKey,
+      mediaType,
       archetypeAnalysis,
       firstImpressionAnalysis,
       redFlagAnalysis
@@ -489,7 +529,7 @@ export async function analyzePupil(
   const processingTime = Date.now() - startTime;
 
   const report: LeonardoReport = {
-    imageUrl: request.imageUrl || "data:image/jpeg;base64,...",
+    imageUrl: request.imageUrl || `data:${mediaType};base64,...`,
     timestamp: new Date().toISOString(),
     overallScore,
     destinyScore,
@@ -1647,6 +1687,7 @@ export async function analyzeDualPupil(
   return {
     ...primaryReport,
     comparisonAnalysis,
-    comparisonImageUrl: request.comparisonImageUrl || "data:image/jpeg;base64,..."
+    comparisonImageUrl: request.comparisonImageUrl ||
+      `data:${request.comparisonImageBase64 ? detectMediaType(request.comparisonImageBase64) : 'image/jpeg'};base64,...`
   };
 }
