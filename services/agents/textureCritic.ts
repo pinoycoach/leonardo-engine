@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { TextureAnalysis, AgentResult, MediaType } from "@/types/leonardo";
+import { extractJSON } from "../jsonUtils";
 
 /**
  * THE TEXTURE CRITIC
@@ -103,7 +104,7 @@ export async function runTextureCritic(
     });
 
     const text = response.content[0].type === 'text' ? response.content[0].text : '';
-    const analysis = JSON.parse(text) as TextureAnalysis;
+    const analysis = JSON.parse(extractJSON(text)) as TextureAnalysis;
 
     const processingTime = Date.now() - startTime;
 

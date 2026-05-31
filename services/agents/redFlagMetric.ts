@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { RedFlagAnalysis, AgentResult, FirstImpressionAnalysis, ArchetypeAnalysis, MediaType } from "@/types/leonardo";
+import { extractJSON } from "../jsonUtils";
 
 /**
  * THE RED FLAG METRIC (Agent 9 - The Sentinel)
@@ -263,7 +264,7 @@ export async function runRedFlagMetric(
     });
 
     const text = response.content[0].type === 'text' ? response.content[0].text : '';
-    const analysis = JSON.parse(text) as RedFlagAnalysis;
+    const analysis = JSON.parse(extractJSON(text)) as RedFlagAnalysis;
 
     const processingTime = Date.now() - startTime;
 

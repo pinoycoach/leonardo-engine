@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { VitruvianMetrics, AgentResult, MediaType } from "@/types/leonardo";
+import { extractJSON } from "../jsonUtils";
 
 /**
  * THE ANATOMIST
@@ -75,7 +76,7 @@ export async function runAnatomist(
     });
 
     const text = response.content[0].type === 'text' ? response.content[0].text : '';
-    const analysis = JSON.parse(text) as VitruvianMetrics;
+    const analysis = JSON.parse(extractJSON(text)) as VitruvianMetrics;
 
     const processingTime = Date.now() - startTime;
 

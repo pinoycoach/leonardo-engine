@@ -14,6 +14,9 @@ import { runRedFlagMetric } from "./agents/redFlagMetric";
 import { runIntegrityAuditor } from "./agents/integrityAuditor";
 // Leonardo Engine v2.0 - Mirror Mode Phase 3 Replacement
 import { runAuthenticityObserver } from "./agents/authenticityObserver";
+// JSON extraction helper (strips markdown code fences from Claude responses)
+import { extractJSON } from "./jsonUtils";
+export { extractJSON } from "./jsonUtils";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // MEDIA TYPE DETECTION
@@ -653,7 +656,7 @@ async function synthesizeResults(agents: LeonardoReport['agents'], apiKey: strin
 
     const text = response.content[0].type === 'text' ? response.content[0].text : '';
 
-    return JSON.parse(text) as {
+    return JSON.parse(extractJSON(text)) as {
       executiveSummary: string;
       topRecommendations: string[]
     };
@@ -777,7 +780,7 @@ async function synthesizeMirrorInsights(
     });
 
     const text = response.content[0].type === 'text' ? response.content[0].text : '';
-    return JSON.parse(text) as LeonardoReport['mirrorInsights'];
+    return JSON.parse(extractJSON(text)) as LeonardoReport['mirrorInsights'];
   } catch (error) {
     console.error("Mirror insights synthesis error:", error);
     // Graceful fallback using raw observer data
@@ -1070,7 +1073,7 @@ async function synthesizeDestinyResults(
 
     const text = response.content[0].type === 'text' ? response.content[0].text : '';
 
-    return JSON.parse(text) as LeonardoReport['destinyInsights'];
+    return JSON.parse(extractJSON(text)) as LeonardoReport['destinyInsights'];
   } catch (error) {
     console.error("Destiny synthesis error:", error);
     return {
@@ -1141,7 +1144,7 @@ async function synthesizeIntegrityDossier(
 
     const text = response.content[0].type === 'text' ? response.content[0].text : '';
 
-    return JSON.parse(text) as LeonardoReport['integrityDossier'];
+    return JSON.parse(extractJSON(text)) as LeonardoReport['integrityDossier'];
   } catch (error) {
     console.error("Integrity Dossier synthesis error:", error);
 

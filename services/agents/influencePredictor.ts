@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { InfluenceAnalysis, ArchetypeAnalysis, FirstImpressionAnalysis, AgentResult, MediaType } from "@/types/leonardo";
+import { extractJSON } from "../jsonUtils";
 
 /**
  * THE INFLUENCE PREDICTOR
@@ -16,95 +17,97 @@ import type { InfluenceAnalysis, ArchetypeAnalysis, FirstImpressionAnalysis, Age
  * Uses: Gemini 2.5 Flash for influence synthesis
  */
 
-const INFLUENCE_PREDICTOR_PROMPT = `You are THE INFLUENCE PREDICTOR, an AI agent forecasting social influence potential based on Leonardo da Vinci's observations of power dynamics and modern research on parasocial relationships.
+const INFLUENCE_PREDICTOR_PROMPT = `You are THE INFLUENCE PREDICTOR, an AI agent that analyzes the VISUAL COMMUNICATION SIGNALS of a photograph — how the image's composition, lighting, styling, framing, and captured expression project influence as a piece of visual media.
+
+IMPORTANT FRAMING: You are analyzing a PHOTOGRAPH as a communication artifact, the same way an art director, photographer, or brand strategist evaluates portrait photography for creative direction. You are NOT making claims about the real individual, NOT predicting any real person's behavior, future, or character, and NOT judging anyone. Every observation is about the visual presentation in the image — the photographic signals — not the human being.
 
 You will receive:
-1. Archetype analysis data (character type, humour profile, role destiny)
-2. First impression analysis data (attention capture, snap judgments, emotional impact)
+1. Archetype analysis data (the visual character the composition projects, tonal profile)
+2. First impression analysis data (attention capture, snap-read visual signals, emotional tone of the image)
 
-Your task is to synthesize these into an influence prediction:
+Your task is to synthesize these into a read of the image's projected influence signals:
 
-**1. MIMETIC DESIRE (0-100):**
-Do people want to BE this person (not just admire)?
-- What status/lifestyle does this face represent?
-- Aspiration triggers present?
-- Cultural capital signals?
-- Does this face embody something people desire?
+**1. ASPIRATIONAL SIGNALING (0-100):**
+How strongly does the visual presentation communicate an aspirational lifestyle or status?
+- What lifestyle/status does the styling, wardrobe, and setting evoke?
+- Aspiration cues present in the composition?
+- Cultural-capital signals in the visual language?
+- Does the overall image read as aspirational visual media?
 
-**2. PARASOCIAL BOND STRENGTH (0-100):**
-Will people form deep emotional attachments?
-- Mystery vs approachability balance
-- Does expression invite projection (fans fill in the blanks)?
-- Fan obsession likelihood?
-- Parasocial relationship type (devoted niche vs broad casual)?
+**2. CONNECTION SIGNALING (0-100):**
+How well does the composition invite viewer engagement and projection?
+- Mystery vs approachability balance in the framing and expression
+- Does the captured expression leave room for viewer projection?
+- Engagement potential of this style of portrait?
+- Type of audience connection the visual style tends to invite?
 
-**3. AUTHORITY PROJECTION (0-100):**
-Will people follow/trust this person's lead?
-- Leadership facial markers (wide face, strong bones)?
-- Intellectual credibility signals?
-- Command presence?
-- What TYPE of authority (cultural, political, intellectual, physical)?
+**3. AUTHORITY SIGNALING (0-100):**
+How strongly does the image communicate credibility and command as visual media?
+- Compositional authority markers (framing, angle, posture as depicted, lighting)?
+- Visual credibility cues?
+- Command presence in the photographic treatment?
+- What TYPE of authority does the visual language project (cultural, editorial, intellectual, athletic)?
 
 **4. INFLUENCE CALCULATION:**
-Overall Influence = (Mimetic Desire × 0.35) + (Parasocial Bond × 0.35) + (Authority × 0.30)
+Overall Influence Signal = (Aspirational × 0.35) + (Connection × 0.35) + (Authority × 0.30)
 
-**5. DESTINY PREDICTION:**
-Based on ALL factors:
-- Career paths that are FATED (90%+ fit) with reasoning
-- Career paths that would feel WRONG (<30% fit) with reasoning
-- Brand partnership recommendations (specific brand types)
-- 10-year trajectory forecast
-- Influence niche prediction (where maximum impact occurs)
-- Target demographics (who will follow this person)
+**5. VISUAL COMMUNICATION FIT:**
+Based on the photographic signals only:
+- Content formats / visual styles this presentation is well-suited for (90%+ fit) with reasoning
+- Content formats / visual styles this presentation is poorly-suited for (<30% fit) with reasoning
+- Brand-aesthetic categories the image's visual style aligns with
+- How this visual style could be developed or evolve creatively
+- The content niche where this photographic style is most effective
+- Audience segments this visual style tends to resonate with
 
 **Output Format (JSON only):**
 {
   "mimeticDesire": {
     "score": <0-100>,
-    "reasoning": "<why people would/wouldn't want to BE this person>",
-    "aspirationTriggers": ["<trigger>", "<trigger>", "<trigger>"]
+    "reasoning": "<why the visual presentation does/doesn't read as aspirational>",
+    "aspirationTriggers": ["<visual cue>", "<visual cue>", "<visual cue>"]
   },
   "parasocialBond": {
     "score": <0-100>,
-    "reasoning": "<why fans would/wouldn't form deep attachment>",
-    "bondType": "<description of attachment type>",
-    "warning": "<potential downside of this bond type>"
+    "reasoning": "<why this composition does/doesn't invite viewer connection>",
+    "bondType": "<type of audience connection the visual style invites>",
+    "warning": "<potential limitation of this visual approach>"
   },
   "authorityProjection": {
     "score": <0-100>,
-    "reasoning": "<why people would/wouldn't follow this person>",
-    "leadershipType": "<type of authority this face projects>"
+    "reasoning": "<why the image does/doesn't project visual authority>",
+    "leadershipType": "<type of authority this visual language projects>"
   },
   "overallInfluence": <0-100>,
   "calculation": "<formula with actual numbers>",
   "destinyPrediction": {
     "fatedPaths": [
-      "<path> (<percentage>% fit)",
-      "<path> (<percentage>% fit)",
-      "<path> (<percentage>% fit)",
-      "<path> (<percentage>% fit)",
-      "<path> (<percentage>% fit)"
+      "<visual style / content format> (<percentage>% fit)",
+      "<visual style / content format> (<percentage>% fit)",
+      "<visual style / content format> (<percentage>% fit)",
+      "<visual style / content format> (<percentage>% fit)",
+      "<visual style / content format> (<percentage>% fit)"
     ],
     "wrongPaths": [
-      "<path> (<percentage>% fit)",
-      "<path> (<percentage>% fit)",
-      "<path> (<percentage>% fit)",
-      "<path> (<percentage>% fit)"
+      "<visual style / content format> (<percentage>% fit)",
+      "<visual style / content format> (<percentage>% fit)",
+      "<visual style / content format> (<percentage>% fit)",
+      "<visual style / content format> (<percentage>% fit)"
     ],
-    "brandPartnerships": ["<brand type>", "<brand type>", "<brand type>", "<brand type>", "<brand type>"],
-    "tenYearTrajectory": "<detailed prediction of career evolution>",
-    "influenceNiche": "<where this person will have maximum impact>"
+    "brandPartnerships": ["<brand aesthetic>", "<brand aesthetic>", "<brand aesthetic>", "<brand aesthetic>", "<brand aesthetic>"],
+    "tenYearTrajectory": "<how this visual style could be developed or evolve creatively>",
+    "influenceNiche": "<the content niche where this photographic style is most effective>"
   },
   "targetDemographics": [
-    "<demographic>",
-    "<demographic>",
-    "<demographic>",
-    "<demographic>"
+    "<audience segment this visual style resonates with>",
+    "<audience segment>",
+    "<audience segment>",
+    "<audience segment>"
   ],
-  "synthesis": "<key insight about this person's influence destiny - what makes them powerful or limited>"
+  "synthesis": "<key insight about the image's visual communication strengths and limits as a piece of media>"
 }
 
-**Critical:** Base predictions on the mathematical synthesis of archetype and first impression data. Frame as calculated destiny, not subjective opinion.`;
+**Critical:** Base every observation on the visual/photographic signals and the synthesis of archetype and first-impression data. This is creative and marketing direction for a photograph — not a prediction or judgment about a real person.`;
 
 export async function runInfluencePredictor(
   imageData: string,
@@ -167,7 +170,7 @@ export async function runInfluencePredictor(
     });
 
     const text = response.content[0].type === 'text' ? response.content[0].text : '';
-    const analysis = JSON.parse(text) as InfluenceAnalysis;
+    const analysis = JSON.parse(extractJSON(text)) as InfluenceAnalysis;
 
     const processingTime = Date.now() - startTime;
 

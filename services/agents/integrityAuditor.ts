@@ -7,6 +7,7 @@ import type {
   RedFlagAnalysis,
   MediaType
 } from "@/types/leonardo";
+import { extractJSON } from "../jsonUtils";
 
 /**
  * THE INTEGRITY AUDITOR (Agent 10 - The Final Judge)
@@ -340,7 +341,7 @@ export async function runIntegrityAuditor(
     });
 
     const text = response.content[0].type === 'text' ? response.content[0].text : '';
-    const analysis = JSON.parse(text) as IntegrityAuditAnalysis;
+    const analysis = JSON.parse(extractJSON(text)) as IntegrityAuditAnalysis;
 
     const processingTime = Date.now() - startTime;
 

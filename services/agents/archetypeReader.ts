@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { ArchetypeAnalysis, AgentResult, MediaType } from "@/types/leonardo";
+import { extractJSON } from "../jsonUtils";
 
 /**
  * THE ARCHETYPE READER
@@ -132,7 +133,7 @@ export async function runArchetypeReader(
     });
 
     const text = response.content[0].type === 'text' ? response.content[0].text : '';
-    const analysis = JSON.parse(text) as ArchetypeAnalysis;
+    const analysis = JSON.parse(extractJSON(text)) as ArchetypeAnalysis;
 
     const processingTime = Date.now() - startTime;
 

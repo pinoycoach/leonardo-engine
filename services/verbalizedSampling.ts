@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { extractJSON } from "./jsonUtils";
 
 export interface VerbalizedResponse {
   text: string;
@@ -56,7 +57,7 @@ export async function runVerbalizedSampling(
   const text = response.content[0].type === 'text' ? response.content[0].text : '';
 
   try {
-    const parsed = JSON.parse(text) as { responses: VerbalizedResponse[] };
+    const parsed = JSON.parse(extractJSON(text)) as { responses: VerbalizedResponse[] };
     const responses = parsed.responses;
 
     if (!responses || responses.length === 0) {

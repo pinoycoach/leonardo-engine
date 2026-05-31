@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { FirstImpressionAnalysis, AgentResult, MediaType } from "@/types/leonardo";
+import { extractJSON } from "../jsonUtils";
 
 /**
  * THE FIRST IMPRESSION ANALYZER
@@ -128,7 +129,7 @@ export async function runFirstImpressionAnalyzer(
     });
 
     const text = response.content[0].type === 'text' ? response.content[0].text : '';
-    const analysis = JSON.parse(text) as FirstImpressionAnalysis;
+    const analysis = JSON.parse(extractJSON(text)) as FirstImpressionAnalysis;
 
     const processingTime = Date.now() - startTime;
 

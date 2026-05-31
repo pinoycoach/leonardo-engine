@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { CompositionAnalysis, AgentResult, MediaType } from "@/types/leonardo";
+import { extractJSON } from "../jsonUtils";
 
 /**
  * THE COMPOSITION DIRECTOR
@@ -106,7 +107,7 @@ export async function runCompositionDirector(
     });
 
     const text = response.content[0].type === 'text' ? response.content[0].text : '';
-    const analysis = JSON.parse(text) as CompositionAnalysis;
+    const analysis = JSON.parse(extractJSON(text)) as CompositionAnalysis;
 
     const processingTime = Date.now() - startTime;
 

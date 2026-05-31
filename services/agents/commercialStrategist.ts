@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { CommercialAnalysis, AgentResult, MediaType } from "@/types/leonardo";
+import { extractJSON } from "../jsonUtils";
 
 /**
  * THE COMMERCIAL STRATEGIST
@@ -108,7 +109,7 @@ export async function runCommercialStrategist(
     });
 
     const text = response.content[0].type === 'text' ? response.content[0].text : '';
-    const analysis = JSON.parse(text) as CommercialAnalysis;
+    const analysis = JSON.parse(extractJSON(text)) as CommercialAnalysis;
 
     const processingTime = Date.now() - startTime;
 

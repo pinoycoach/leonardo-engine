@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { AuthenticityObservation, AgentResult, MediaType } from "@/types/leonardo";
+import { extractJSON } from "../jsonUtils";
 
 /**
  * THE AUTHENTICITY OBSERVER (Mirror Mode – Phase 3 Replacement)
@@ -95,7 +96,7 @@ export async function runAuthenticityObserver(
     });
 
     const text = response.content[0].type === 'text' ? response.content[0].text : '';
-    const analysis = JSON.parse(text) as AuthenticityObservation;
+    const analysis = JSON.parse(extractJSON(text)) as AuthenticityObservation;
 
     const processingTime = Date.now() - startTime;
 
