@@ -17,7 +17,7 @@ import { extractJSON } from "../jsonUtils";
  * - Dark Triad Cluster Detection
  * - The Mastermind Profile (High Symmetry + Low Warmth)
  *
- * Uses: Gemini 2.0 Flash with Vision for forensic facial analysis (REST API)
+ * Uses: Gemini 3.5 Flash with Vision for forensic facial analysis (REST API)
  */
 
 const RED_FLAG_METRIC_PROMPT = `You are THE RED FLAG METRIC, an AI agent scanning for involuntary behavioral markers based on Leonardo da Vinci's "Moti Mentali" principle.
@@ -239,7 +239,7 @@ export async function runRedFlagMetricGemini(
       contextPrompt += `\n\nUse this context to detect INCONGRUENCE between claimed archetype and biological markers.`;
     }
 
-    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey}`;
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${geminiApiKey}`;
 
     const response = await fetch(endpoint, {
       method: "POST",
