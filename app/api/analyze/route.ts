@@ -19,6 +19,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Optional Gemini key — enables the Red Flag Metric fallback when the
+    // primary Claude call fails or returns zero confidence. Absent = fallback
+    // is skipped and behavior is unchanged.
+    const geminiApiKey = process.env.GOOGLE_AI_API_KEY || request.headers.get('x-gemini-api-key') || undefined;
+
     // ═══════════════════════════════════════════════════════════════════════════
     // BATCH MODE - Process 10-60 images sequentially
     // ═══════════════════════════════════════════════════════════════════════════
@@ -56,7 +61,7 @@ export async function POST(request: NextRequest) {
             intent: body.intent
           };
 
-          const report = await analyzePupil(singleRequest, apiKey, mediaType);
+          const report = await analyzePupil(singleRequest, apiKey, mediaType, geminiApiKey);
           reports.push({ index: i, fileName: `Image ${i + 1}`, report });
           completedImages++;
           console.log(`   ✅ Image ${i + 1} complete: Leonardo Score ${report.overallScore}/100`);
@@ -136,7 +141,7 @@ export async function POST(request: NextRequest) {
       console.log('🎨 Starting Leonardo Engine 2.0 DUAL IMAGE COMPARISON analysis...');
 
       // Run dual analysis (each image's type is auto-detected internally)
-      const report = await analyzeDualPupil(body, apiKey);
+      const report = await analyzeDualPupil(body, apiKey, geminiApiKey);
 
       console.log('✅ Dual analysis complete:');
       console.log(`   Leonardo Score: ${report.overallScore}/100`);
@@ -152,7 +157,7 @@ export async function POST(request: NextRequest) {
     console.log('🎨 Starting Leonardo Engine 2.0 FINAL analysis...');
 
     // Run analysis with all 10 agents
-    const report = await analyzePupil(body, apiKey, mediaType);
+    const report = await analyzePupil(body, apiKey, mediaType, geminiApiKey);
 
     console.log('✅ Analysis complete:');
     console.log(`   Leonardo Score: ${report.overallScore}/100`);

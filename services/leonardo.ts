@@ -11,6 +11,7 @@ import { runFirstImpressionAnalyzer } from "./agents/firstImpressionAnalyzer";
 import { runInfluencePredictor } from "./agents/influencePredictor";
 // Leonardo Engine 2.0 Final - Integrity Dossier Agents (The Truth Layer)
 import { runRedFlagMetric } from "./agents/redFlagMetric";
+import { runRedFlagMetricGemini } from "./agents/redFlagMetricGemini";
 import { runIntegrityAuditor } from "./agents/integrityAuditor";
 // Leonardo Engine v2.0 - Mirror Mode Phase 3 Replacement
 import { runAuthenticityObserver } from "./agents/authenticityObserver";
@@ -281,7 +282,8 @@ const MIRROR_INSIGHTS_SYNTHESIS_PROMPT = `You are Leonardo da Vinci synthesizing
 export async function analyzePupil(
   request: AnalysisRequest,
   apiKey: string,
-  mediaTypeOverride?: MediaType
+  mediaTypeOverride?: MediaType,
+  geminiApiKey?: string
 ): Promise<LeonardoReport> {
   const startTime = Date.now();
 
@@ -375,6 +377,27 @@ export async function analyzePupil(
       archetypeAnalysis,
       firstImpressionAnalysis
     );
+
+    // Fallback: Claude stays primary. If it failed (status 'error') or returned
+    // zero confidence, retry on Gemini — but only when a Gemini key is available.
+    if (geminiApiKey && (redFlagResult.status !== 'success' || redFlagResult.confidence === 0)) {
+      console.log("⚠️ Red Flag Metric (Claude) failed or returned 0 confidence — falling back to Gemini...");
+      const geminiRedFlagResult = await runRedFlagMetricGemini(
+        imageData,
+        geminiApiKey,
+        mediaType,
+        archetypeAnalysis,
+        firstImpressionAnalysis
+      );
+      // Only adopt the Gemini result if it actually succeeded; otherwise keep
+      // the original Claude result so downstream behavior is unchanged.
+      if (geminiRedFlagResult.status === 'success') {
+        console.log("✅ Red Flag Metric: Gemini fallback succeeded");
+        redFlagResult = geminiRedFlagResult;
+      } else {
+        console.log("❌ Red Flag Metric: Gemini fallback also failed — keeping Claude result");
+      }
+    }
 
     redFlagAnalysis = redFlagResult.status === 'success'
       ? redFlagResult.analysis as RedFlagAnalysis
@@ -1659,18 +1682,19 @@ export function generateComparisonAnalysis(
 
 export async function analyzeDualPupil(
   request: AnalysisRequest,
-  apiKey: string
+  apiKey: string,
+  geminiApiKey?: string
 ): Promise<LeonardoReport> {
   if (!request.comparisonMode || (!request.comparisonImageBase64 && !request.comparisonImageUrl)) {
     // No comparison requested - run standard analysis
-    return analyzePupil(request, apiKey);
+    return analyzePupil(request, apiKey, undefined, geminiApiKey);
   }
 
   console.log("🔄 DUAL IMAGE ANALYSIS: Running comparison mode...");
 
   // Run primary image analysis
   console.log("📸 Analyzing primary image...");
-  const primaryReport = await analyzePupil(request, apiKey);
+  const primaryReport = await analyzePupil(request, apiKey, undefined, geminiApiKey);
 
   // Run comparison image analysis
   console.log("📸 Analyzing comparison image...");
@@ -1680,7 +1704,7 @@ export async function analyzeDualPupil(
     mode: request.mode,
     intent: request.intent
   };
-  const comparisonReport = await analyzePupil(comparisonRequest, apiKey);
+  const comparisonReport = await analyzePupil(comparisonRequest, apiKey, undefined, geminiApiKey);
 
   // Generate comparison analysis
   console.log("📊 Generating comparison analysis...");
