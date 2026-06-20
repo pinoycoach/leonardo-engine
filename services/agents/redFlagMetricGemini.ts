@@ -269,7 +269,13 @@ export async function runRedFlagMetricGemini(
 
     const data = await response.json();
     const text: string = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
-    const analysis = JSON.parse(extractJSON(text)) as RedFlagAnalysis;
+    const sanitizedText = text.replace(/[\u0000-\u001F\u007F]/g, (c) => {
+      if (c === '\n') return '\\n';
+      if (c === '\r') return '\\r';
+      if (c === '\t') return '\\t';
+      return '';
+    });
+    const analysis = JSON.parse(extractJSON(sanitizedText)) as RedFlagAnalysis;
 
     const processingTime = Date.now() - startTime;
 
