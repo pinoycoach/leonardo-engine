@@ -649,7 +649,7 @@ async function synthesizeResults(agents: LeonardoReport['agents'], apiKey: strin
     const prompt = basePrompt.replace('{agentResults}', agentResultsText);
 
     const response = await client.messages.create({
-      model: "claude-sonnet-4-20250514",
+      model: "claude-sonnet-4-6",
       max_tokens: 2048,
       messages: [{ role: "user", content: prompt }]
     });
@@ -774,7 +774,7 @@ async function synthesizeMirrorInsights(
     const prompt = MIRROR_INSIGHTS_SYNTHESIS_PROMPT.replace('{observerResults}', observerResultsText);
 
     const response = await client.messages.create({
-      model: "claude-sonnet-4-20250514",
+      model: "claude-sonnet-4-6",
       max_tokens: 2048,
       messages: [{ role: "user", content: prompt }]
     });
@@ -1066,7 +1066,7 @@ async function synthesizeDestinyResults(
     const prompt = DESTINY_SYNTHESIS_PROMPT.replace('{destinyResults}', destinyResultsText);
 
     const response = await client.messages.create({
-      model: "claude-sonnet-4-20250514",
+      model: "claude-sonnet-4-6",
       max_tokens: 2048,
       messages: [{ role: "user", content: prompt }]
     });
@@ -1137,7 +1137,7 @@ async function synthesizeIntegrityDossier(
     const prompt = INTEGRITY_DOSSIER_SYNTHESIS_PROMPT.replace('{integrityResults}', integrityResultsText);
 
     const response = await client.messages.create({
-      model: "claude-sonnet-4-20250514",
+      model: "claude-sonnet-4-6",
       max_tokens: 2048,
       messages: [{ role: "user", content: prompt }]
     });
