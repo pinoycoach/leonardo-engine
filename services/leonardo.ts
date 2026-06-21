@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { LeonardoReport, AnalysisRequest, ArchetypeAnalysis, FirstImpressionAnalysis, RedFlagAnalysis, VitruvianMetrics, ComparisonAnalysis, MediaType } from "@/types/leonardo";
 import { runAnatomist } from "./agents/anatomist";
+import { runAnatomistGemini } from "./agents/anatomistGemini";
 import { runLightMaster } from "./agents/lightMaster";
 import { runCompositionDirector } from "./agents/compositionDirector";
 import { runTextureCritic } from "./agents/textureCritic";
@@ -312,7 +313,27 @@ export async function analyzePupil(
     textureCriticResult,
     commercialResult
   ] = await Promise.all([
-    runAnatomist(imageData, apiKey, mediaType),
+    // Gemini is now primary for the Anatomist. Run it first whenever a Gemini
+    // key is available, and fall back to Claude only if Gemini fails.
+    (async () => {
+      if (!geminiApiKey) {
+        return runAnatomist(imageData, apiKey, mediaType);
+      }
+      const geminiAnatomistResult = await runAnatomistGemini(imageData, geminiApiKey, mediaType);
+      if (geminiAnatomistResult.status === 'success' && geminiAnatomistResult.confidence !== 0) {
+        return geminiAnatomistResult;
+      }
+      console.log("⚠️ Anatomist (Gemini) failed or returned 0 confidence — falling back to Claude...");
+      const claudeAnatomistResult = await runAnatomist(imageData, apiKey, mediaType);
+      // Only adopt the Claude result if it actually succeeded; otherwise keep
+      // the Gemini result so downstream behavior is unchanged.
+      if (claudeAnatomistResult.status === 'success') {
+        console.log("✅ Anatomist: Claude fallback succeeded");
+        return claudeAnatomistResult;
+      }
+      console.log("❌ Anatomist: Claude fallback also failed — keeping Gemini result");
+      return geminiAnatomistResult;
+    })(),
     runLightMaster(imageData, apiKey, mediaType),
     runCompositionDirector(imageData, apiKey, mediaType),
     runTextureCritic(imageData, apiKey, mediaType),
@@ -370,33 +391,44 @@ export async function analyzePupil(
   } else {
     console.log("🔍 Phase 3 [NOTEBOOK]: Running 2 Integrity Dossier agents (Truth Layer)...");
 
-    redFlagResult = await runRedFlagMetric(
-      imageData,
-      apiKey,
-      mediaType,
-      archetypeAnalysis,
-      firstImpressionAnalysis
-    );
-
-    // Fallback: Claude stays primary. If it failed (status 'error') or returned
-    // zero confidence, retry on Gemini — but only when a Gemini key is available.
-    if (geminiApiKey && (redFlagResult.status !== 'success' || redFlagResult.confidence === 0)) {
-      console.log("⚠️ Red Flag Metric (Claude) failed or returned 0 confidence — falling back to Gemini...");
-      const geminiRedFlagResult = await runRedFlagMetricGemini(
+    // Gemini is now primary for the Red Flag Metric. Run it first whenever a
+    // Gemini key is available, and fall back to Claude only if Gemini fails.
+    if (geminiApiKey) {
+      redFlagResult = await runRedFlagMetricGemini(
         imageData,
         geminiApiKey,
         mediaType,
         archetypeAnalysis,
         firstImpressionAnalysis
       );
-      // Only adopt the Gemini result if it actually succeeded; otherwise keep
-      // the original Claude result so downstream behavior is unchanged.
-      if (geminiRedFlagResult.status === 'success') {
-        console.log("✅ Red Flag Metric: Gemini fallback succeeded");
-        redFlagResult = geminiRedFlagResult;
-      } else {
-        console.log("❌ Red Flag Metric: Gemini fallback also failed — keeping Claude result");
+
+      if (redFlagResult.status !== 'success' || redFlagResult.confidence === 0) {
+        console.log("⚠️ Red Flag Metric (Gemini) failed or returned 0 confidence — falling back to Claude...");
+        const claudeRedFlagResult = await runRedFlagMetric(
+          imageData,
+          apiKey,
+          mediaType,
+          archetypeAnalysis,
+          firstImpressionAnalysis
+        );
+        // Only adopt the Claude result if it actually succeeded; otherwise keep
+        // the Gemini result so downstream behavior is unchanged.
+        if (claudeRedFlagResult.status === 'success') {
+          console.log("✅ Red Flag Metric: Claude fallback succeeded");
+          redFlagResult = claudeRedFlagResult;
+        } else {
+          console.log("❌ Red Flag Metric: Claude fallback also failed — keeping Gemini result");
+        }
       }
+    } else {
+      // No Gemini key available — Claude is the only option.
+      redFlagResult = await runRedFlagMetric(
+        imageData,
+        apiKey,
+        mediaType,
+        archetypeAnalysis,
+        firstImpressionAnalysis
+      );
     }
 
     redFlagAnalysis = redFlagResult.status === 'success'
